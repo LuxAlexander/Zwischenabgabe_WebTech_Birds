@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vogelstimmen Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+
+<body>
+    <div id="app">
+        <nav class="navbar navbar-expand-md navbar-dark mb-4 p-3">
+            <div class="container">
+                <span class="navbar-brand fw-bold fs-4 me-4">🐦 BirdSound Analytics</span>
+
+                <div class="navbar-nav me-auto mb-2 mb-md-0">
+                    <a class="nav-link" href="https://xeno-canto.org/explore/api" target="_blank" rel="noopener">
+                        📄 API Docs
+                    </a>
+                    <button class="nav-link btn btn-link text-start border-0 bg-transparent" data-bs-toggle="modal"
+                        data-bs-target="#helpModal">
+                        💡 Such-Optionen
+                    </button>
+                </div>
+
+                <div class="d-flex shadow-sm rounded">
+                    <input v-model="searchParam" @keyup.enter="fetchData" class="form-control me-2 border-0"
+                        type="search" placeholder="z.B. cnt:germany">
+                    <button @click="fetchData" class="btn btn-warning fw-medium px-4">Suchen</button>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container">
+            <div
+                class="p-4 mb-4 bg-white rounded-3 shadow-sm border-start border-success border-4 d-flex justify-content-between align-items-center flex-wrap">
+                <div>
+                    <h1 class="fw-bold h2 mb-1">Xeno-Canto Entdecker</h1>
+                    <p class="text-muted mb-0">Interaktive Analyse von weltweiten Vogelgesängen</p>
+                </div>
+                <div class="text-end mt-2 mt-md-0">
+                    <span class="fs-3 fw-bold text-success">{{ totalRecordings }}</span>
+                    <div class="text-muted small">Aufnahmen gefunden</div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <span class="text-muted me-2 small fw-bold text-uppercase">Schnellfilter:</span>
+                <button @click="quickSearch('cnt:austria')"
+                    class="btn btn-sm btn-outline-secondary me-2 rounded-pill">Österreich 🇦🇹</button>
+                <button @click="quickSearch('cnt:germany')"
+                    class="btn btn-sm btn-outline-secondary me-2 rounded-pill">Deutschland 🇩🇪</button>
+                <button @click="quickSearch('cnt:switzerland')"
+                    class="btn btn-sm btn-outline-secondary rounded-pill">Schweiz 🇨🇭</button>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-5 mb-4">
+                    <div class="card p-4 mb-4">
+                        <h5 class="fw-bold mb-3 text-secondary">Top 5 Aufnehmer (Recordists)</h5>
+                        <div style="position: relative; height:250px;">
+                            <canvas id="birdChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="card p-4">
+                        <h5 class="fw-bold mb-3 text-secondary">Verteilung der Ruf-Typen</h5>
+                        <div style="position: relative; height:250px;">
+                            <canvas id="typeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-7">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold text-secondary mb-0">Aktuelle Treffer</h5>
+                        <span class="badge bg-secondary" v-if="recordings.length">Zeige {{ recordings.length }}</span>
+                    </div>
+
+                    <div v-if="recordings.length === 0" class="alert alert-info border-0 shadow-sm text-center py-4">
+                        <div class="fs-4 mb-2">🔍</div>
+                        Keine Daten geladen oder Suche ergab keine Treffer.
+                    </div>
+
+                    <div class="list-group">
+                        <div v-for="rec in recordings" :key="rec.id"
+                            class="list-group-item d-flex justify-content-between align-items-center p-3 border-0 shadow-sm">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-light p-2 rounded-circle me-3 text-center"
+                                    style="width: 45px; height: 45px; line-height: 29px;">🎵</div>
+                                <div>
+                                    <h6 class="fw-bold mb-0 text-dark">{{ rec.en || 'Unbekannt' }}</h6>
+                                    <div class="small text-muted mb-1"><em>{{ rec.gen }} {{ rec.sp }}</em></div>
+                                    <span class="badge badge-geo small">{{ rec.loc }} — {{ rec.cnt }}</span>
+                                </div>
+                            </div>
+                            <button @click="openModal(rec)"
+                                class="btn btn-sm btn-outline-success rounded-pill px-3">Details</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg" v-if="selectedBird">
+                    <div class="modal-header bg-success text-white border-0">
+                        <h5 class="modal-title fw-bold">🐦 {{ selectedBird.en }}</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <table class="table table-sm table-borderless mb-3">
+                            <tr>
+                                <td class="text-muted fw-medium py-1" style="width: 30%;">Spezies:</td>
+                                <td class="fst-italic py-1">{{ selectedBird.gen }} {{ selectedBird.sp }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted fw-medium py-1">Aufgenommen von:</td>
+                                <td class="py-1">{{ selectedBird.rec }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted fw-medium py-1">Datum:</td>
+                                <td class="py-1">{{ selectedBird.date }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted fw-medium py-1">Ruf-Typ:</td>
+                                <td class="py-1"><span class="badge bg-light text-dark">{{ selectedBird.type }}</span>
+                                </td>
+                            </tr>
+                        </table>
+                        <hr class="text-muted">
+                        <label class="form-label fw-bold text-success mb-2 small text-uppercase">Hörprobe</label>
+                        <audio controls :src="selectedBird.file" class="w-100 rounded-3"></audio>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="helpModal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header bg-dark text-white border-0">
+                        <h5 class="modal-title fw-bold" id="helpModalLabel">🔍 Verfügbare Suchfilter</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Filter</th>
+                                        <th>Beschreibung</th>
+                                        <th>Beispiel</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><code class="text-danger fw-bold">cnt:</code></td>
+                                        <td>Land (Country)</td>
+                                        <td><button @click="quickSearch('cnt:austria')" data-bs-dismiss="modal"
+                                                class="btn btn-link p-0 btn-sm text-decoration-none">cnt:austria</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code class="text-danger fw-bold">gen:</code></td>
+                                        <td>Gattung (Genus)</td>
+                                        <td><button @click="quickSearch('gen:turdus')" data-bs-dismiss="modal"
+                                                class="btn btn-link p-0 btn-sm text-decoration-none">gen:turdus</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code class="text-danger fw-bold">sp:</code></td>
+                                        <td>Artname (Species)</td>
+                                        <td><button @click="quickSearch('sp:merula')" data-bs-dismiss="modal"
+                                                class="btn btn-link p-0 btn-sm text-decoration-none">sp:merula</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code class="text-danger fw-bold">q:</code></td>
+                                        <td>Aufnahmequalität (A–E)</td>
+                                        <td><button @click="quickSearch('cnt:germany q:A')" data-bs-dismiss="modal"
+                                                class="btn btn-link p-0 btn-sm text-decoration-none">q:A</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="scripts.js"></script>
+</body>
+
+</html>
