@@ -1,14 +1,71 @@
 const express = require('express');
+const bcrypt = require('bcrypt');
 const { ObjectId } = require('mongodb');
 const { connectToDatabase } = require('./db.js');
-
+const path = require('path');
 const app = express();
 const PORT = 3000;
+const cookieParser = require('cookie-parser');
 
+//https->Zertifikat->let's encrypt
+
+app.use(cookieParser());
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
+
 
 const XENO_CANTO_API_KEY = "1bc58428a6413196d11d320af58d5d360ccd3ca2";
+
+app.post('/api/login', async (req, res) => {
+
+    const id=await storeUsertoDB(req.body.username, req.body.password);
+    if(id===-1){
+        return res.status(409).json({ error: "Benutzername existiert bereits." });
+    }
+    res.cookie('SessionID', id, { httpOnly: true, maxAge: 60 * 60 * 1000 }); // Cookie für 1 h setzen
+    res.json({ success: true, message: "Login/Registrierung erfolgreich" });
+});
+
+async function storeUsertoDB(username, password) {
+
+    const salt = await bcrypt.genSalt();
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const db = await connectToDatabase();
+    const collection = db.collection('users');
+    //check if user already exists
+    const existingUser = await collection.findOne({ username });
+    if (existingUser) {
+        if (await bcrypt.compare(password, existingUser.password)) {
+            return existingUser._id; // Return existing user's ID for session
+        }else return -1;
+    }else if(!existingUser){
+        const result = await collection.insertOne({ username, password: hashedPassword });
+        return result.insertedId;
+    }
+}
+
+async function authenticateUser(req, res, next) {
+    if (!req.cookies || !req.cookies.SessionID) {
+        return res.status(401).json({ error: "Nicht authentifiziert" });
+    }
+    const sessionId = req.cookies.SessionID;
+    //Check ID in DB
+    const db=await connectToDatabase();
+    const collection = db.collection('users');
+    const user=await collection.findOne({ _id: new ObjectId(sessionId) });
+    if (user) {
+        next();
+    }else{
+        return res.status(401).json({ error: "Nicht authentifiziert" });
+    }
+}
+app.get('/secret', authenticateUser, async (req, res) => {
+    res.end("Du hast das geheime Ende erreicht! 🎉");
+});
+
+app.use(authenticateUser, express.static(path.join(__dirname, 'private')));
+
 
 // 1. NUR IN DER EIGENEN DB SUCHEN
 app.get('/api/birds', async (req, res) => {
@@ -128,6 +185,8 @@ app.post('/api/birds/bulk-delete', async (req, res) => {
         res.status(500).json({ error: 'Massen-Löschen fehlgeschlagen.' });
     }
 });
+
+
 
 app.listen(PORT, () => {
     console.log(`Server läuft auf http://127.0.0.1:${PORT}`);
