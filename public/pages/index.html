@@ -114,7 +114,7 @@
                     </button>
                     <!-- Make it bold and easy to read-->
                     <p v-else class="medium mt-1 mb-0 text-dark fw-bold p-2 rounded shadow-sm">
-                        <a href="/login" class="text-success fw-semibold">Anmelden</a> um Einträge zu bearbeiten
+                        <a href="/login">Anmelden</a> um Einträge zu bearbeiten
                     </p>
                 </div>
                 <div class="text-end">
@@ -123,15 +123,16 @@
                 </div>
             </div>
 
+            
             <div class="row">
                 <div class="col-12">
                     <div class="card shadow-sm border-0 p-4">
-                        <h5 class="fw-bold text-dark mb-4 border-bottom pb-2 d-flex justify-content-between align-items-center">
+                        <h2 class="fw-bold text-dark mb-4 border-bottom pb-2 d-flex justify-content-between align-items-center">
                             <span>Ergebnisse</span>
                             <span v-if="searchParam" class="badge bg-secondary fw-normal small fs-6">
                                 „{{ searchParam }}“
                             </span>
-                        </h5>
+                        </h2>
 
                         <div v-if="recordings.length === 0" class="empty-state text-center py-5">
                             <div class="mb-2" style="font-size:3rem;">🔍</div>
@@ -143,7 +144,7 @@
                             <table class="table table-hover align-middle" v-if="recordings.length > 0">
                                 <thead class="table-light text-muted small text-uppercase">
                                     <tr>
-                                        <th scope="col" style="width: 50px;"></th>
+                                        <th scope="col" style="width: 50px;" class="visually-hidden">Liste der Einträge aus der Sound Datenbank</th>
                                         <th scope="col">Vogelname (Engl. / Wiss.)</th>
                                         <th scope="col">Details & Ort</th>
                                         <th scope="col" class="text-end">Aktionen</th>
@@ -190,7 +191,7 @@
             </div>
         </div>
 
-        <div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
+        <div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content" v-if="selectedBird">
                     <div class="modal-header bg-success text-white">
@@ -223,7 +224,7 @@
             </div>
         </div>
 
-        <div v-if="isAuthenticated" class="modal fade" id="formModal" tabindex="-1" aria-labelledby="formModalLabel" aria-hidden="true">
+        <div v-if="isAuthenticated" class="modal fade" id="formModal" tabindex="-1" aria-labelledby="formModalLabel">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header bg-dark text-white">

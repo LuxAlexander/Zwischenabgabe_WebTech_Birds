@@ -1,4 +1,5 @@
- function switchTab(tab) {
+// Toggle active classes and accessibility attributes between login and register tabs
+    function switchTab(tab) {
       ['login', 'register'].forEach(t => {
         document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
         document.getElementById(`tab-${t}`).setAttribute('aria-selected', t === tab);
@@ -11,6 +12,7 @@
       });
     }
 
+    // Toggle password visibility and update button text/aria-label for accessibility
     function togglePassword(id, btn) {
       const input = document.getElementById(id);
       const isText = input.type === 'text';
@@ -19,6 +21,7 @@
       btn.setAttribute('aria-label', isText ? 'Passwort anzeigen' : 'Passwort verbergen');
     }
 
+    // Display a status message with a specific alert styling class
     function showAlert(elId, message, type) {
       const el = document.getElementById(elId);
       el.textContent = message;
@@ -26,6 +29,7 @@
       el.style.display = 'block';
     }
 
+    // Calculate password complexity score and update progress bar width and color, AI
     function checkStrength(pw) {
       const fill = document.getElementById('strength-fill');
       let score = 0;
@@ -40,6 +44,7 @@
       fill.style.background = score <= 1 ? '#e74c3c' : score <= 3 ? '#f39c12' : '#27ae60';
     }
 
+    // Validate inputs, send credential payload to server, and redirect upon login success
     async function handleLogin() {
       const username = document.getElementById('login-username').value.trim();
       const password = document.getElementById('login-password').value;
@@ -84,6 +89,7 @@
       }
     }
 
+    // Validate registration credentials, match passwords, and create account via API
     async function handleRegister() {
       const username = document.getElementById('reg-username').value.trim();
       const password = document.getElementById('reg-password').value;
@@ -118,7 +124,7 @@
         });
 
         const data = await res.json();
-
+        // Handle specific error for username already taken
         if (res.status === 401) {
           showAlert('register-alert', 'Dieser Benutzername ist bereits vergeben.', 'danger');
           return;
@@ -141,7 +147,7 @@
       }
     }
 
-    // Submit on Enter
+    // Trigger correct submission handler depending on which authentication tab is active
     document.addEventListener('keydown', e => {
       if (e.key === 'Enter') {
         const loginActive = document.getElementById('pane-login').classList.contains('active');
