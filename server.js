@@ -17,6 +17,7 @@ app.use(express.static(path.join(__dirname, '/public')));
 // API-Key aus Umgebungsvariable oder Fallback (Sicherheits-Best-Practice)
 const XENO_CANTO_API_KEY = process.env.XENO_CANTO_API_KEY || "1bc58428a6413196d11d320af58d5d360ccd3ca2";
 
+//Page paths
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'pages', 'index.html'));
 });
@@ -29,6 +30,7 @@ app.get('/stats', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'pages', 'stats.html'));
 });
 
+// Authentifizierungsmiddleware durch Cookie-SessionID
 async function authenticateUser(req, res, next) {
     if (!req.cookies || !req.cookies.SessionID) {
         return res.status(401).json({ error: "Nicht authentifiziert" });
