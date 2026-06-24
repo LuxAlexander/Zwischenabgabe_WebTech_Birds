@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="./img/flower_icon.svg">
+    <title>Sound Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./styles/styles.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+    <div id="app">
+        <nav class="navbar navbar-expand-md navbar-dark mb-4 p-3 bg-dark" role="navigation" aria-label="Hauptnavigation">
+            <div class="container d-flex align-items-center gap-3 flex-wrap">
+                <a class="navbar-brand fw-bold fs-5 me-0 text-white text-decoration-none" href="./">🐦 Sound DB</a>
+
+                <div class="d-flex gap-2">
+                    <a href="index" class="btn btn-sm btn-outline-light active">Aufnahmen</a>
+                    <a href="stats" class="btn btn-sm btn-outline-light">Statistiken</a>
+                </div>
+
+                <div class="auth-badge" :class="isAuthenticated ? 'auth-badge--in' : 'auth-badge--out'" aria-live="polite">
+                    <span v-if="isAuthenticated">✓ Angemeldet</span>
+                    <a v-else href="login" class="text-white fw-medium text-decoration-underline">X Anmelden</a>
+                </div>
+
+                <div class="dropdown ms-1">
+                    <button class="btn btn-sm btn-info text-dark fw-bold dropdown-toggle px-3 shadow-sm" 
+                            type="button" 
+                            data-bs-toggle="dropdown" 
+                            data-bs-auto-close="outside"
+                            aria-expanded="false" 
+                            aria-haspopup="true" 
+                            id="helpMenuBtn">
+                        ℹ️ Hilfe / Parameter
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-help shadow-lg p-0 dropdown-menu-end" aria-labelledby="helpMenuBtn" style="min-width: 320px;">
+                        <div class="help-header px-4 py-3 bg-light border-b text-dark">
+                            <h6 class="fw-bold mb-1">Suchparameter</h6>
+                            <p class="small mb-0 text-muted">Nutze diese Felder für gezielte Suchen und Importe</p>
+                        </div>
+                        <div class="help-body px-4 py-3 bg-white">
+                            <table class="help-table w-100 table table-sm table-borderless mb-2">
+                                <thead>
+                                    <tr class="border-bottom small text-muted">
+                                        <th>Schlüssel</th>
+                                        <th>Bedeutung</th>
+                                        <th>Beispiel</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="small">
+                                    <tr><td><code>cnt</code></td><td>Land</td><td><code>cnt:austria</code></td></tr>
+                                    <tr><td><code>loc</code></td><td>Ort / Region</td><td><code>loc:vienna</code></td></tr>
+                                    <tr><td><code>en</code></td><td>Engl. Name</td><td><code>en:sparrow</code></td></tr>
+                                    <tr><td><code>gen</code></td><td>Gattung</td><td><code>gen:Parus</code></td></tr>
+                                    <tr><td><code>type</code></td><td>Ruftyp</td><td><code>type:song</code></td></tr>
+                                    <tr><td><code>rec</code></td><td>Aufnehmer</td><td><code>rec:Müller</code></td></tr>
+                                </tbody>
+                            </table>
+                            <div class="help-divider my-2 border-top"></div>
+                            <p class="small mb-2 text-muted"><strong>Kombinieren:</strong> <br><code class="bg-light p-1 rounded">cnt:austria; type:song (Mithilfe von Semikolons)</code></p>
+                            <a href="https://xeno-canto.org/help/search" target="_blank" rel="noopener" class="help-link btn btn-xs btn-primary w-100 text-center small py-1 mt-1 text-white">
+                                Xeno-Canto Doku →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex shadow-sm rounded ms-auto search-bar">
+                    <input v-model="searchParam" @keyup.enter="fetchDBData"
+                           class="form-control me-2 border-0"
+                           type="search"
+                           placeholder="z.B. cnt:austria; type:song; rec:müller"
+                           aria-label="Datenbank durchsuchen">
+                    <button @click="fetchDBData" class="btn btn-warning fw-medium px-4">Suchen</button>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container">
+
+            <div v-if="isAuthenticated" class="row mb-4">
+                <div class="col-md-6 mb-3 mb-md-0">
+                    <div class="card p-3 bg-light border border-primary h-100">
+                        <h6 class="fw-bold text-primary mb-1">📥 Von Xeno-Canto importieren</h6>
+                        <p class="small text-muted mb-2">Aufnahmen aus der Xeno-Canto API in deine DB laden</p>
+                        <div class="input-group mt-auto">
+                            <input v-model="importParam" type="text" class="form-control" placeholder="z.B. cnt:austria" aria-label="Import-Suchbegriff">
+                            <button @click="importFromAPI" class="btn btn-primary" :disabled="isImporting">
+                                {{ isImporting ? 'Lädt…' : 'Importieren' }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card p-3 bg-light border border-danger h-100">
+                        <h6 class="fw-bold text-danger mb-1">🗑️ Massen-Löschung</h6>
+                        <p class="small text-muted mb-2">Alle Einträge, die dem Kriterium entsprechen, löschen</p>
+                        <div class="input-group mt-auto">
+                            <input v-model="bulkDeleteParam" type="text" class="form-control" placeholder="z.B. cnt:austria" aria-label="Lösch-Kriterium">
+                            <button @click="bulkDeleteFromDB" class="btn btn-danger">Löschen</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-banner mb-4 card p-4 bg-light shadow-sm border-0 d-flex flex-row justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <h1 class="fw-bold h3 mb-1 text-dark">Vogelstimmen-Datenbank</h1>
+                    <button v-if="isAuthenticated" @click="openCreateModal" class="btn btn-sm btn-success mt-1">
+                        + Neuer Eintrag
+                    </button>
+                    <!-- Make it bold and easy to read-->
+                    <p v-else class="medium mt-1 mb-0 text-dark fw-bold p-2 rounded shadow-sm">
+                        <a href="./login.html" class="text-success fw-semibold">Anmelden</a> um Einträge zu bearbeiten
+                    </p>
+                </div>
+                <div class="text-end">
+                    <span class="fs-1 fw-bold text-success d-block">{{ totalRecordings }}</span>
+                    <div class="text-muted small fw-medium text-uppercase">Aufnahmen in der DB</div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <div class="card shadow-sm border-0 p-4">
+                        <h5 class="fw-bold text-dark mb-4 border-bottom pb-2 d-flex justify-content-between align-items-center">
+                            <span>Ergebnisse</span>
+                            <span v-if="searchParam" class="badge bg-secondary fw-normal small fs-6">
+                                „{{ searchParam }}“
+                            </span>
+                        </h5>
+
+                        <div v-if="recordings.length === 0" class="empty-state text-center py-5">
+                            <div class="mb-2" style="font-size:3rem;">🔍</div>
+                            <p class="text-muted fw-medium">Keine Einträge gefunden.</p>
+                            <p v-if="isAuthenticated" class="small text-muted">Nutze das Import-Feld oben, um Daten zu laden.</p>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle" v-if="recordings.length > 0">
+                                <thead class="table-light text-muted small text-uppercase">
+                                    <tr>
+                                        <th scope="col" style="width: 50px;"></th>
+                                        <th scope="col">Vogelname (Engl. / Wiss.)</th>
+                                        <th scope="col">Details & Ort</th>
+                                        <th scope="col" class="text-end">Aktionen</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="rec in recordings" :key="rec._id">
+                                        <td class="text-center fs-4 text-success" aria-hidden="true">🎵</td>
+                                        <td>
+                                            <div class="fw-bold text-dark fs-5">{{ rec.en || 'Unbekannt' }}</div>
+                                            <div class="text-muted small style-italic">
+                                                <em>{{ [rec.gen, rec.sp].filter(Boolean).join(' ') || '–' }}</em>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="mb-1">
+                                                <span v-if="rec.type" class="badge bg-info text-dark me-1 small fw-normal">{{ rec.type }}</span>
+                                            </div>
+                                            <small class="text-secondary d-block">
+                                                📍 {{ [rec.loc, rec.cnt].filter(Boolean).join(' — ') || 'Kein Ort angegeben' }}
+                                            </small>
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <button @click="openModal(rec)" class="btn btn-success px-3" title="Details & Audio">
+                                                    ▶ <span class="ms-1 d-none d-sm-inline">Details</span>
+                                                </button>
+                                                <template v-if="isAuthenticated">
+                                                    <button @click="openEditModal(rec)" class="btn btn-outline-secondary" title="Eintrag bearbeiten">
+                                                        ✏️
+                                                    </button>
+                                                    <button @click="deleteSingle(rec._id)" class="btn btn-outline-danger" title="Eintrag löschen" :aria-label="'Eintrag ' + (rec.en || 'unbekannt') + ' löschen'">
+                                                        ✕
+                                                    </button>
+                                                </template>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content" v-if="selectedBird">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title fw-bold" id="detailModalLabel">🐦 {{ selectedBird.en }}</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Schließen"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <dl class="detail-list mb-3">
+                            <div v-if="selectedBird.gen || selectedBird.sp" class="mb-2">
+                                <dt class="fw-bold small text-muted">Wissenschaftlicher Name</dt>
+                                <dd class="fs-5"><em>{{ [selectedBird.gen, selectedBird.sp].filter(Boolean).join(' ') }}</em></dd>
+                            </div>
+                            <div v-if="selectedBird.loc || selectedBird.cnt" class="mb-2">
+                                <dt class="fw-bold small text-muted">Fundort</dt>
+                                <dd class="fs-6">📍 {{ [selectedBird.loc, selectedBird.cnt].filter(Boolean).join(', ') }}</dd>
+                            </div>
+                            <div v-if="selectedBird.type" class="mb-2">
+                                <dt class="fw-bold small text-muted">Ruftyp</dt>
+                                <dd><span class="badge bg-light text-dark border">{{ selectedBird.type }}</span></dd>
+                            </div>
+                            <div v-if="selectedBird.rec" class="mb-2">
+                                <dt class="fw-bold small text-muted">Aufnehmer</dt>
+                                <dd class="text-secondary">{{ selectedBird.rec }}</dd>
+                            </div>
+                        </dl>
+                        <audio v-if="selectedBird.file" controls :src="selectedBird.file" class="w-100 mt-3" aria-label="Audioaufnahme von {{ selectedBird.en }}"></audio>
+                        <p v-else class="text-muted small mt-3">Keine Audiodatei verfügbar.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="isAuthenticated" class="modal fade" id="formModal" tabindex="-1" aria-labelledby="formModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-dark text-white">
+                        <h5 class="modal-title fw-bold" id="formModalLabel">{{ isEditMode ? 'Eintrag bearbeiten' : 'Neuen Vogel eintragen' }}</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Schließen"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div @keydown.enter.prevent>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold" for="form-en">Englischer Name *</label>
+                                <input v-model="formBird.en" type="text" class="form-control" id="form-en" required>
+                            </div>
+                            <div class="row">
+                                <div class="col mb-3">
+                                    <label class="form-label small fw-bold" for="form-gen">Gattung *</label>
+                                    <input v-model="formBird.gen" type="text" class="form-control" id="form-gen" required>
+                                </div>
+                                <div class="col mb-3">
+                                    <label class="form-label small fw-bold" for="form-sp">Art *</label>
+                                    <input v-model="formBird.sp" type="text" class="form-control" id="form-sp" required>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col mb-3">
+                                    <label class="form-label small fw-bold" for="form-loc">Ort</label>
+                                    <input v-model="formBird.loc" type="text" class="form-control" id="form-loc">
+                                </div>
+                                <div class="col mb-3">
+                                    <label class="form-label small fw-bold" for="form-cnt">Land</label>
+                                    <input v-model="formBird.cnt" type="text" class="form-control" id="form-cnt">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold" for="form-file">Audio-URL</label>
+                                <input v-model="formBird.file" type="url" class="form-control" id="form-file" placeholder="https://…">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold" for="form-type">Ruftyp</label>
+                                <input v-model="formBird.type" type="text" class="form-control" id="form-type" placeholder="z.B. song, call">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold" for="form-rec">Aufnehmer</label>
+                                <input v-model="formBird.rec" type="text" class="form-control" id="form-rec">
+                            </div>
+                            <div class="text-end mt-4">
+                                <button type="button" class="btn btn-light me-2" data-bs-dismiss="modal">Abbrechen</button>
+                                <button type="button" @click="saveBird" class="btn btn-primary">Speichern</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="./scripts/scripts.js"></script>
+</body>
+</html>

@@ -1,0 +1,371 @@
+/*Global*/
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f4f7f6;
+    color: #050d06 !important; /* Fast reines Schwarz statt Grau für besseren Kontrast */
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+}
+
+
+/* Fokus-Sicherheit für Tastatur-Nutzer überall */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+    outline: 3px solid #0d6efd !important; /* Barrierefreies, kontraststarkes Blau */
+    outline-offset: 2px;
+}
+
+/* Navigation & Header */
+.navbar {
+    background: linear-gradient(135deg, #165a25, #1e7e34) !important; /* Abgedunkelt für besseren Kontrast zur weißen Schrift */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    background-color: #fff;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+/* Erhöht die Kontraste der gesamten Statistik-Ansicht */
+.card h2, .card h3 {
+    color: #000000 !important;
+    font-size: 1.65rem;
+}
+
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Tabellen- und Listenelemente */
+.table th {
+    font-weight: 700;
+    color: #3a5040;
+    letter-spacing: 0.03em;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f0f5f1; /*kontraststarkes Highlight bei Hover */
+}
+
+/* Badges mit barrierefreien Kontrastwerten */
+.badge-geo {
+    background-color: #2d7a32; /* Dunkleres Grün für bessere Lesbarkeit */
+    color: #ffffff;
+    font-weight: 500;
+}
+
+.meta-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+/* Hilfe-Menü */
+.dropdown-menu-help {
+    border: 1px solid #c8d8cb;
+    border-radius: 8px;
+}
+
+.help-table td, .help-table th {
+    padding: 0.4rem;
+    vertical-align: middle;
+}
+
+/* Auth-Status im Header */
+.auth-badge {
+    padding: 0.5%;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+.auth-badge--in {
+    background-color: #10e082;
+    color: #0f5132;
+    border: 1px solid #000000;
+}
+.auth-badge--out {
+    background-color: #b61825;
+    color: #842029;
+    border: 2px solid #000000;
+}
+
+/* Login */
+/* Verhindert Konflikte mit dem Dashboard-Layout */
+.auth-page {
+    background-color: #e8efe9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+}
+
+.auth-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 440px;
+    overflow: hidden;
+    border: 1px solid #dce8de;
+}
+
+.auth-header {
+    background: linear-gradient(135deg, #145223, #1e6b2e); /* Kontrast erhöht */
+    padding: 2rem 2rem 1.5rem;
+    color: #fff;
+}
+
+.auth-header .brand {
+    font-size: 1.65rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.auth-header .brand span {
+    opacity: 0.85;
+    font-weight: 400;
+}
+
+.auth-header p {
+    margin: 0.35rem 0 0;
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+/* Tab-Navigation für Login / Registrierung */
+.tab-nav {
+    display: flex;
+    background: #f1f5f2;
+    border-bottom: 2px solid #dcdfdc;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 1rem;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #4a5d4e;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    margin-bottom: -2px;
+}
+
+.tab-btn:hover {
+    color: #145223;
+    background-color: #eaeee9;
+}
+
+.tab-btn.active {
+    color: #145223;
+    border-bottom-color: #2d9144;
+    background: #fff;
+}
+
+.auth-body {
+    padding: 2rem;
+}
+
+.tab-pane {
+    display: none;
+}
+
+.tab-pane.active {
+    display: block;
+}
+
+/* Formularelemente mit starkem Kontrastrahmen */
+.form-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #243828;
+    margin-bottom: 0.4rem;
+}
+
+.form-control {
+    border: 2px solid #a3bfa7; /* Rahmen verstärkt für bessere Sichtbarkeit */
+    border-radius: 8px;
+    font-size: 1rem;
+    padding: 0.65rem 0.875rem;
+    color: #112213;
+    background: #fcfefc;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.form-control:focus {
+    border-color: #145223;
+    box-shadow: 0 0 0 3px rgba(20, 82, 35, 0.25);
+    outline: none;
+    background: #fff;
+}
+
+.form-control::placeholder {
+    color: #708a75; /* Kontrast von ausgegrautem Text erhöht */
+}
+
+/* Validierungs-Zustände (Farbe + zusätzliche visuelle Indikatoren über Icons/Texte in HTML) */
+.form-control.is-invalid {
+    border-color: #b91c1c; /* Dunkleres Rot für verlässlicheren Kontrast */
+    background-color: #fff8f8;
+}
+
+.form-control.is-invalid:focus {
+    box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.2);
+}
+
+.invalid-feedback {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #b91c1c;
+    margin-top: 0.25rem;
+}
+
+/* Authentifizierungs-Buttons */
+.btn-primary-auth {
+    width: 100%;
+    padding: 0.8rem 1.2rem;
+    background: #257e39;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    margin-top: 0.75rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-primary-auth:hover {
+    background: #195827;
+}
+
+.btn-primary-auth:active {
+    background: #113f1b;
+    transform: scale(0.99);
+}
+
+.btn-primary-auth:disabled {
+    background: #a3cfa9;
+    color: #ffffff;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* Barrierefreie Alerts (Dunklere Schriftfarben auf hellem Grund) */
+.alert-auth {
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9375rem;
+    margin-bottom: 1.25rem;
+    font-weight: 500;
+    border-left: 5px solid transparent; /* Visueller Indikator zusätzlich zur Farbe */
+}
+
+.alert-auth.alert-danger {
+    background: #fdf2f2;
+    color: #9b1c1c;
+    border-color: #f8b4b4;
+    border-left-color: #b91c1c;
+}
+
+.alert-auth.alert-success {
+    background: #f3faf7;
+    color: #115e3b;
+    border-color: #def7ec;
+    border-left-color: #0e9f6e;
+}
+
+/* Trennlinien & Sonstiges */
+.divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 1.5rem 0;
+    color: #526e56;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.divider::before,
+.divider::after {
+    content: '';
+    flex: 1;
+    height: 2px;
+    background: #cbd3cc;
+}
+
+.hint-text {
+    text-align: center;
+    font-size: 0.875rem;
+    color: #4a5d4e;
+    margin-top: 1.25rem;
+}
+
+.hint-text a {
+    color: #145223;
+    font-weight: 700;
+    text-decoration: underline;
+}
+
+.hint-text a:hover {
+    color: #0a2b12;
+}
+
+/* Passwort-Sichtbarkeits-Auge */
+.password-wrapper {
+    position: relative;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #eef2ef;
+    border: 1px solid #a3bfa7;
+    border-radius: 4px;
+    color: #243828;
+    cursor: pointer;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.password-toggle:hover {
+    background: #dbf2df;
+}
+
+/* Passwort-Stärkeanzeige */
+.strength-bar {
+    height: 5px; /* Etwas dicker für bessere Erkennbarkeit */
+    border-radius: 3px;
+    background: #e0e8e1;
+    margin-top: 0.5rem;
+    overflow: hidden;
+}
+
+.strength-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.2s, background 0.2s;
+    width: 0%;
+}
+

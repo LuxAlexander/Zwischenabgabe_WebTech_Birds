@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistiken</title>
+    <link rel="icon" type="image/x-icon" href="./img/flower_icon.svg">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+    <div id="app">
+
+        <nav class="navbar navbar-expand-md navbar-dark mb-4 p-3 bg-dark" role="navigation" aria-label="Hauptnavigation">
+            <div class="container d-flex align-items-center gap-3 flex-wrap">
+                <a class="navbar-brand fw-bold fs-5 me-0 text-white text-decoration-none" href="./index.html">🐦 Sound DB</a>
+
+                <div class="d-flex gap-2">
+                    <a href="/" class="btn btn-sm btn-outline-light">Aufnahmen</a>
+                    <a href="/stats" class="btn btn-sm btn-light text-dark fw-bold">Statistiken</a>
+                </div>
+
+                <div class="auth-badge" :class="isAuthenticated ? 'auth-badge--in' : 'auth-badge--out'" aria-live="polite">
+                    <span v-if="isAuthenticated">✓ Angemeldet</span>
+                    <a v-else href="login" class="text-white fw-medium text-decoration-underline">Anmelden</a>
+                </div>
+
+                <div class="dropdown ms-1">
+                    <button class="btn btn-sm btn-info text-dark fw-bold dropdown-toggle px-3 shadow-sm" 
+                            type="button" 
+                            data-bs-toggle="dropdown" 
+                            data-bs-auto-close="outside"
+                            aria-expanded="false" 
+                            aria-haspopup="true" 
+                            id="helpMenuBtn">
+                        ℹ️ Hilfe / Parameter
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-help shadow-lg p-0 dropdown-menu-end" aria-labelledby="helpMenuBtn" style="min-width: 320px;">
+                        <div class="help-header px-4 py-3 bg-light border-b text-dark">
+                            <h6 class="fw-bold mb-1">Suchparameter</h6>
+                            <p class="small mb-0 text-muted">Nutze diese Felder für gezielte Suchen und Importe</p>
+                        </div>
+                        <div class="help-body px-4 py-3 bg-white">
+                            <table class="help-table w-100 table table-sm table-borderless mb-2">
+                                <thead>
+                                    <tr class="border-bottom small text-muted">
+                                        <th>Schlüssel</th>
+                                        <th>Bedeutung</th>
+                                        <th>Beispiel</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="small">
+                                    <tr><td><code>cnt</code></td><td>Land</td><td><code>cnt:austria</code></td></tr>
+                                    <tr><td><code>loc</code></td><td>Ort / Region</td><td><code>loc:vienna</code></td></tr>
+                                    <tr><td><code>en</code></td><td>Engl. Name</td><td><code>en:sparrow</code></td></tr>
+                                    <tr><td><code>gen</code></td><td>Gattung</td><td><code>gen:Parus</code></td></tr>
+                                    <tr><td><code>type</code></td><td>Ruftyp</td><td><code>type:song</code></td></tr>
+                                    <tr><td><code>rec</code></td><td>Aufnehmer</td><td><code>rec:Müller</code></td></tr>
+                                </tbody>
+                            </table>
+                            <div class="help-divider my-2 border-top"></div>
+                            <p class="small mb-2 text-muted"><strong>Kombinieren:</strong> <br><code class="bg-light p-1 rounded">cnt:austria type:song</code></p>
+                            <a href="https://xeno-canto.org/help/search" target="_blank" rel="noopener" class="help-link btn btn-xs btn-primary w-100 text-center small py-1 mt-1 text-white">
+                                Xeno-Canto Doku →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex shadow-sm rounded ms-auto search-bar">
+                    <input v-model="searchParam" @keyup.enter="fetchDBData"
+                           class="form-control me-2 border-0"
+                           type="search"
+                           placeholder="Eigene DB durchsuchen…"
+                           aria-label="Datenbank durchsuchen">
+                    <button @click="fetchDBData" class="btn btn-warning fw-medium px-4">Suchen</button>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container">
+            <!-- Größerer, dunklerer Haupttitel -->
+            <h1 class="fw-bold text-dark display-5 mb-4 border-bottom pb-2" style="color: #000000 !important;">Datenbank-Statistiken</h1>
+
+            <div class="row">
+                <!-- Top 5 Aufnehmer (Untereinander durch col-12) -->
+                <div class="col-12 mb-5">
+                    <div class="card p-4 border-0 shadow-sm">
+                        <h2 class="fw-bold mb-4 text-dark h3" style="color: #000000 !important;">Top 5 Aufnehmer</h2>
+                        <div class="chart-container" style="position: relative; height:400px;">
+                            <!-- aria-describedby is used for screen readers to provide context, it functions as a label for the canvas-->
+                            <canvas id="birdChart" role="img" aria-describedby="birdChartTable"></canvas>
+                        </div>
+                        <!-- For Screen Readers -->
+                        <div class="visually-hidden">
+                            <table id="birdChartTable">
+                               <caption>Rangliste der Top 5 Aufnehmer</caption>
+                               <thead><tr><th scope="col">Aufnehmer</th><th scope="col">Anzahl</th></tr></thead>
+                               <tbody>
+                                   <tr v-for="(count, name) in statsData.recorders" :key="name">
+                                       <td>{{ name }}</td><td>{{ count }}</td>
+                                   </tr>
+                               </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ruftypen (Untereinander durch col-12) -->
+                <div class="col-12 mb-5">
+                    <div class="card p-4 border-0 shadow-sm">
+                        <h2 class="fw-bold mb-4 text-dark h3" style="color: #000000 !important;">Verteilung der Ruftypen</h2>
+                        <div class="chart-container" style="position: relative; height:400px;">
+                            <canvas id="typeChart" role="img" aria-describedby="typeChartTable"></canvas>
+                        </div>
+
+                        <div class="visually-hidden">
+                            <table id="typeChartTable">
+                               <caption>Verteilung der Ruftypen</caption>
+                               <thead><tr><th scope="col">Ruftyp</th><th scope="col">Anzahl</th></tr></thead>
+                               <tbody>
+                                   <tr v-for="(count, type) in statsData.types" :key="type">
+                                       <td>{{ type }}</td><td>{{ count }}</td>
+                                   </tr>
+                               </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/scripts/scripts.js"></script>
+</body>
+</html>

@@ -12,10 +12,22 @@ app.use(cookieParser());
 app.use(express.json());
 
 // Öffentlich zugängliche Dateien
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, '/public')));
 
 // API-Key aus Umgebungsvariable oder Fallback (Sicherheits-Best-Practice)
 const XENO_CANTO_API_KEY = process.env.XENO_CANTO_API_KEY || "1bc58428a6413196d11d320af58d5d360ccd3ca2";
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'pages', 'index.html'));
+});
+
+app.get('/login', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'pages', 'login.html'));
+});
+
+app.get('/stats', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'pages', 'stats.html'));
+});
 
 async function authenticateUser(req, res, next) {
     if (!req.cookies || !req.cookies.SessionID) {
@@ -91,25 +103,55 @@ async function storeUsertoDB(username, password) {
 
 app.get('/api/birds', async (req, res) => {
     try {
-        const db = await connectToDatabase();
-        const collection = db.collection('birds');
-        const searchQuery = req.query.query;
-        let filter = {};
+        const { query } = req.query;
+        let mongoQuery = {};
 
-        if (searchQuery && searchQuery.trim() !== "") {
-            filter = {
-                $or: [
-                    { en: { $regex: searchQuery, $options: 'i' } },
-                    { loc: { $regex: searchQuery, $options: 'i' } },
-                    { cnt: { $regex: searchQuery, $options: 'i' } }
-                ]
-            };
+        if (query && query.trim() !== "") {
+            // Teilt den String bei jedem Semikolon auf (z.B. "cnt:austria; type:song")
+            const parts = query.split(';');
+            const andConditions = [];
+
+            parts.forEach(part => {
+                const trimmedPart = part.trim();
+                
+                // Prüfen, ob der Teil einen Doppelpunkt enthält (valider Parameter)
+                if (trimmedPart.includes(':')) {
+                    const [key, value] = trimmedPart.split(':').map(s => s.trim());
+                    
+                    // Erlaubte Keys definieren, um Injections oder Fehler zu vermeiden
+                    const allowedKeys = ['cnt', 'loc', 'en', 'gen', 'type', 'rec', 'sp'];
+                    
+                    if (allowedKeys.includes(key) && value) {
+                        const condition = {};
+                        // "i" sorgt dafür, dass Groß-/Kleinschreibung ignoriert wird
+                        condition[key] = { $regex: value, $options: 'i' }; 
+                        andConditions.push(condition);
+                    }
+                } else if (trimmedPart !== "") {
+                    // Fallback: Wenn kein Doppelpunkt da ist, suche im englischen Namen ('en')
+                    andConditions.push({ en: { $regex: trimmedPart, $options: 'i' } });
+                }
+            });
+
+            if (andConditions.length > 0) {
+                mongoQuery = { $and: andConditions };
+            }
         }
 
-        const birds = await collection.find(filter).toArray();
-        res.json({ recordings: birds, numRecordings: birds.length });
+        // Verwende dein echtes Mongoose-Modell (z.B. Bird oder Recording)
+        const db = await connectToDatabase();
+        const collection = db.collection('birds');
+
+        const recordings = await collection.find(mongoQuery).toArray();
+        
+        res.json({
+            recordings: recordings,
+            numRecordings: recordings.length
+        });
+
     } catch (error) {
-        res.status(500).json({ error: 'Fehler beim Abrufen aus der Datenbank.' });
+        console.error("Suchfehler:", error);
+        res.status(500).json({ error: "Fehler bei der Suche" });
     }
 });
 
