@@ -28,5 +28,5 @@ npm install
 
 Danach kann das Projekt mit folgendem Befehl ausgeführt werden:
 ```bash
-npm install
+npm start
 ```
