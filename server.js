@@ -51,7 +51,7 @@ async function authenticateUser(req, res, next) {
         if (user) {
             req.user = user; // Benutzer an req hängen, falls man ihn später braucht
             return next();
-        } 
+        }
         
         res.status(401).json({ error: "Sitzung abgelaufen oder Benutzer existiert nicht" });
     } catch (error) {

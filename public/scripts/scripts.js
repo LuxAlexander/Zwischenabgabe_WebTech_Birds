@@ -238,7 +238,7 @@ createApp({
             const textAccessibleDark = '#111111';
             const globalFontFamily = "'Inter', sans-serif";
 
-            // ---------- Top recordists ----------
+            // Top recordists
 
             const recCounts = {};
 
@@ -350,7 +350,7 @@ createApp({
                 });
             }
 
-            // ---------- Recording types ----------
+            // Recording types
 
             const typeCounts = {};
 
